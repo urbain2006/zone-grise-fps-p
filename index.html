@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OPÉRATION : ZONE GRISE — FPS Web</title>
+<style>
+:root{--lime:#b9f36b;--red:#ff4d58;--panel:rgba(7,13,18,.82);--line:rgba(255,255,255,.17)}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#0b1217;color:#eef4f3;font-family:Inter,Arial,sans-serif}
+canvas{display:block}#game{position:fixed;inset:0}#hud{position:fixed;inset:0;pointer-events:none;display:none}
+.top{position:absolute;top:20px;left:22px;right:22px;display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.brand{font-size:11px;letter-spacing:3px;color:var(--lime);font-weight:800}.mission{margin-top:7px;font-size:14px;font-weight:700;text-shadow:0 2px 8px #000}.objective{margin-top:5px;color:#d5dedf;font-size:12px}
+.pill{background:var(--panel);border:1px solid var(--line);padding:10px 13px;border-radius:7px;backdrop-filter:blur(8px);font-size:11px;letter-spacing:1px}
+#status{color:var(--lime);font-weight:800}#stats{display:flex;gap:8px}.stat{min-width:85px}
+.stat strong{display:block;font-size:17px;margin-top:4px}.stat small{font-size:9px;color:#9caeb4;letter-spacing:1.4px}
+#crosshair{position:absolute;left:50%;top:50%;width:22px;height:22px;transform:translate(-50%,-50%);opacity:.92}
+#crosshair:before,#crosshair:after{content:"";position:absolute;background:#f5f7e9;box-shadow:0 0 3px #000}
+#crosshair:before{width:2px;height:18px;left:10px;top:2px}#crosshair:after{height:2px;width:18px;left:2px;top:10px}
+#hitmarker{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:30px;color:#fff;opacity:0}
+#bottom{position:absolute;left:22px;right:22px;bottom:20px;display:flex;justify-content:space-between;align-items:end;gap:12px}
+.weapon{font-size:11px;letter-spacing:2px;color:#b9c8cb}.weapon strong{display:block;color:#fff;font-size:19px;letter-spacing:1px;margin-top:5px}
+#healthbar{width:150px;height:5px;background:#3a464a;margin-top:7px;border-radius:8px;overflow:hidden}#healthfill{height:100%;width:100%;background:var(--lime)}
+#toast{position:absolute;left:50%;top:66%;transform:translateX(-50%);font-size:12px;letter-spacing:2px;background:rgba(0,0,0,.6);padding:10px 15px;border:1px solid var(--line);opacity:0;transition:opacity .2s}
+#radar{width:105px;height:105px;border:1px solid #b9f36b77;border-radius:50%;background:rgba(5,15,16,.7);position:relative;overflow:hidden}
+#radar:before,#radar:after{content:"";position:absolute;background:#b9f36b30}#radar:before{width:1px;height:100%;left:50%}#radar:after{height:1px;width:100%;top:50%}
+.dot{position:absolute;width:6px;height:6px;border-radius:50%;background:var(--red);box-shadow:0 0 8px var(--red)}
+#overlay{position:fixed;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;padding:20px;background:linear-gradient(100deg,rgba(4,9,12,.94),rgba(5,12,16,.68)),radial-gradient(ellipse at 75% 45%,#394b46,#080d12 70%)}
+.card{width:min(560px,100%);padding:clamp(22px,5vw,44px);border:1px solid #ffffff2b;background:rgba(6,13,17,.88);box-shadow:0 20px 90px #0008;backdrop-filter:blur(12px)}
+.kicker{font-size:10px;color:var(--lime);letter-spacing:4px;font-weight:800}.title{font-size:clamp(36px,7vw,65px);line-height:.94;letter-spacing:-2px;font-weight:900;margin:18px 0 12px}.title span{color:var(--lime)}.desc{color:#b5c3c6;line-height:1.65;font-size:14px;max-width:440px}
+.info{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:22px 0}.info div{padding:12px;background:#ffffff08;border:1px solid #ffffff15;font-size:11px;color:#aab9bc}.info b{display:block;color:white;font-size:12px;margin-bottom:5px}
+button{border:0;background:var(--lime);color:#10170e;font-weight:900;letter-spacing:1.5px;padding:16px 20px;cursor:pointer;width:100%;font-size:12px}button:hover{filter:brightness(1.08)}
+.note{font-size:10px;color:#819194;margin-top:13px;line-height:1.5}
+#mobile{display:none;position:fixed;inset:0;pointer-events:none;z-index:5}#lookzone{position:absolute;right:0;top:15%;width:52%;height:70%;pointer-events:auto}
+.touchbtn{pointer-events:auto;position:absolute;border:1px solid #ffffff66;background:#0a1219aa;color:white;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:800;user-select:none}
+#fire{right:22px;bottom:95px;width:75px;height:75px;border-color:#ff4d58aa}#reload{right:108px;bottom:53px;width:48px;height:48px}#jump{left:25px;bottom:110px;width:54px;height:54px}#stick{left:26px;bottom:28px;width:95px;height:70px;border-radius:38px;color:#9fb0b5;font-size:9px}
+#result{display:none}
+@media(max-width:700px){.top{top:12px;left:12px;right:12px}.mission{font-size:12px}.objective{max-width:190px;font-size:10px}#stats{gap:5px}.stat{min-width:60px;padding:8px}.stat strong{font-size:14px}#bottom{left:12px;right:12px;bottom:12px}#radar{width:76px;height:76px}.weapon strong{font-size:15px}#mobile{display:block}.brand{letter-spacing:1.5px}}
+</style>
+</head>
+<body>
+<div id="game"></div>
+<div id="hud">
+ <div class="top">
+  <div><div class="brand">UNITÉ TACTIQUE // 07</div><div class="mission" id="missionName">MISSION 01 — EXTRACTION</div><div class="objective" id="objective">Neutralisez les hostiles et atteignez le point d'extraction.</div></div>
+  <div id="stats"><div class="pill stat"><small>ÉTAT</small><strong id="status">EN COURS</strong></div><div class="pill stat"><small>HOSTILES</small><strong id="enemyCount">04</strong></div></div>
+ </div>
+ <div id="crosshair"></div><div id="hitmarker">×</div>
+ <div id="toast">OBJECTIF MIS À JOUR</div>
+ <div id="bottom">
+  <div class="pill"><div class="weapon">FUSIL D'ASSAUT <strong>AR-24 <span style="color:var(--lime)" id="ammo">30</span> / 120</strong></div></div>
+  <div id="radar"></div>
+  <div class="pill"><div class="weapon">INTÉGRITÉ <strong id="health">100%</strong></div><div id="healthbar"><div id="healthfill"></div></div></div>
+ </div>
+</div>
+<div id="mobile"><div id="lookzone"></div><div class="touchbtn" id="fire">TIR</div><div class="touchbtn" id="reload">RECH.</div><div class="touchbtn" id="jump">SAUT</div><div class="touchbtn" id="stick">DÉPLACER</div></div>
+<div id="overlay"><div class="card">
+ <div class="kicker">SIMULATION FPS • PROTOTYPE WEB 3D</div>
+ <div class="title">ZONE<br><span>GRISE.</span></div>
+ <div class="desc">Une zone industrielle abandonnée. Votre escouade a été dispersée. Éliminez les quatre combattants hostiles, restez en vie et rejoignez l'extraction.</div>
+ <div class="info"><div><b>OBJECTIF</b>4 hostiles + extraction</div><div><b>ENVIRONNEMENT</b>Zone industrielle crépusculaire</div><div><b>PC</b>WASD · souris · clic gauche</div><div><b>MOBILE</b>Joystick tactile · bouton TIR</div></div>
+ <button id="start">LANCER LA MISSION</button>
+ <div class="note">Prototype de démonstration : ennemis fictifs, aucune connexion en ligne. Sur ordinateur, cliquez dans la scène pour capturer la souris. Appuyez sur Échap pour la libérer.</div>
+ </div></div>
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.js';
+
+const root=document.getElementById('game');
+const scene=new THREE.Scene(); scene.background=new THREE.Color(0x83918c); scene.fog=new THREE.FogExp2(0x83918c,0.018);
+const camera=new THREE.PerspectiveCamera(76,innerWidth/innerHeight,.1,180); camera.rotation.order='YXZ';
+const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
+renderer.setSize(innerWidth,innerHeight); renderer.setPixelRatio(Math.min(devicePixelRatio,1.65)); renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.05; root.appendChild(renderer.domElement);
+scene.add(new THREE.HemisphereLight(0xcbd8d4,0x33332d,2.0));
+const sun=new THREE.DirectionalLight(0xffdfb1,3.1); sun.position.set(-22,35,15); sun.castShadow=true; sun.shadow.mapSize.set(1024,1024); sun.shadow.camera.left=-55;sun.shadow.camera.right=55;sun.shadow.camera.top=55;sun.shadow.camera.bottom=-55;scene.add(sun);
+const mat=(color,roughness=.85,metalness=.05)=>new THREE.MeshStandardMaterial({color,roughness,metalness});
+const concrete=mat(0x656d69), asphalt=mat(0x303837), dark=mat(0x252e2e), rust=mat(0x725344), metal=mat(0x465253,.42,.65), sand=mat(0x9a8b6d), foliage=mat(0x34483b), windowMat=new THREE.MeshStandardMaterial({color:0x344a4d,roughness:.25,metalness:.3});
+function box(x,y,z,sx,sy,sz,m,shadow=true){let o=new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz),m);o.position.set(x,y,z);o.castShadow=shadow;o.receiveShadow=true;scene.add(o);return o}
+function cylinder(x,y,z,r1,r2,h,m,seg=8){let o=new THREE.Mesh(new THREE.CylinderGeometry(r1,r2,h,seg),m);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;scene.add(o);return o}
+const floor= new THREE.Mesh(new THREE.PlaneGeometry(150,150),asphalt);floor.rotation.x=-Math.PI/2;floor.position.y=-.08;floor.receiveShadow=true;scene.add(floor);
+// Concrete lane markings and cracked-looking seams
+for(let x=-38;x<=38;x+=8){box(x,.005,-2,.12,.015,55,mat(0x666b60),false)}
+// Perimeter industrial buildings
+for(const [x,z,w,d,h] of [[-22,-23,18,12,12],[17,-27,23,10,15],[-34,7,10,22,10],[34,8,12,20,13],[0,-43,48,8,11]]){
+ box(x,h/2,z,w,h,d,concrete);
+ for(let wx=x-w/2+2;wx<x+w/2-1;wx+=4) box(wx,h*.63,z+d/2+.02,1.45,1.5,.07,windowMat,false);
+ for(let k=0;k<3;k++)box(x-w/2+1.4+k*2.2,h+0.35,z,.9,.7,d*.8,metal);
+}
+// Cargo containers, barriers, pallets, pipes
+for(const [x,z,c] of [[-11,-8,0x53665e],[12,-13,0x785747],[22,7,0x526b68],[-25,18,0x8b694e],[3,20,0x68736b]]){
+ let o=box(x,1.35,z,6,2.7,2.5,mat(c,.68,.35));
+ for(let k=-2.5;k<=2.5;k+=.5)box(x+k,1.35,z+1.27,.035,2.45,.035,metal,false);
+ for(const end of [-1,1]){box(x+end*2.85,1.35,z, .12,2.55,2.58,metal,false)}
+}
+for(let i=0;i<15;i++){
+ const x=-30+(i*13%60), z=-16+(i*19%43);
+ if(Math.abs(x)<8&&z>0)continue;
+ box(x,.55,z,2.5,1.1,1.4,i%2?rust:dark);
+ if(i%3===0)cylinder(x+1.7,.7,z, .38,.38,2,metal,12).rotation.z=Math.PI/2;
+}
+// Light poles
+for(const [x,z] of [[-16,-3],[17,2],[-31,28],[30,-16]]){
+ cylinder(x,4,z,.12,.16,8,metal);box(x,8,z,.8,.2,.35,sand);
+}
+// Scattered rubble
+for(let i=0;i<65;i++){let x=(Math.random()-.5)*78,z=(Math.random()-.5)*72;if(Math.abs(x)<4&&z>0&&z<12)continue;let r=.15+Math.random()*.5;let o=new THREE.Mesh(new THREE.DodecahedronGeometry(r,0),i%2?dark:concrete);o.position.set(x,r*.55,z);o.rotation.set(Math.random(),Math.random(),Math.random());o.castShadow=true;scene.add(o)}
+// First-person weapon model
+const weapon=new THREE.Group();camera.add(weapon);scene.add(camera);
+const gunMat=mat(0x252d2d,.4,.55), gripMat=mat(0x111716,.75);
+function gunbox(x,y,z,sx,sy,sz,m){let o=new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz),m);o.position.set(x,y,z);weapon.add(o);return o}
+gunbox(.34,-.29,-.72,.19,.19,.68,gunMat);gunbox(.34,-.39,-.52,.11,.25,.18,gripMat);gunbox(.34,-.21,-1.12,.075,.075,.55,metal);gunbox(.34,-.15,-.78,.11,.035,.22,gripMat);gunbox(.34,-.34,-.84,.13,.18,.22,gripMat);
+weapon.position.set(0,0,0);
+// Player / controls
+const player={x:0,y:1.7,z:12,yaw:0,pitch:0,health:100,ammo:30,reserve:120,alive:true,started:false,won:false};
+camera.position.set(player.x,player.y,player.z);
+const keys={};let locked=false, lastShot=0, recoil=0, bob=0, mobileLook=null, fireHeld=false;
+const blockers=[]; // solid obstacles for player movement
+for(const o of scene.children){if(o.isMesh && o.geometry.type==='BoxGeometry' && o.position.y>.4 && o.position.y<10) blockers.push(o)}
+const enemyMat=mat(0x343d3b), vestMat=mat(0x555e50), skinMat=mat(0x97775d), redMat=mat(0x8d3835);
+const enemies=[];
+function makeEnemy(x,z,index){
+ const g=new THREE.Group();g.position.set(x,0,z);g.userData={hp:100,alive:true,shoot:2+Math.random()*2,index,hit:0};
+ const body=new THREE.Mesh(new THREE.CapsuleGeometry(.34,.72,4,8),vestMat);body.position.y=1.12;body.castShadow=true;g.add(body);
+ const head=new THREE.Mesh(new THREE.SphereGeometry(.23,12,10),skinMat);head.position.y=1.82;head.castShadow=true;g.add(head);
+ const helmet=new THREE.Mesh(new THREE.SphereGeometry(.25,12,8,0,Math.PI*2,0,Math.PI/2),enemyMat);helmet.position.y=1.94;g.add(helmet);
+ for(const side of [-1,1]){let leg=new THREE.Mesh(new THREE.BoxGeometry(.19,.62,.22),enemyMat);leg.position.set(side*.17,.38,0);leg.castShadow=true;g.add(leg);let arm=new THREE.Mesh(new THREE.BoxGeometry(.16,.62,.17),vestMat);arm.position.set(side*.39,1.18,-.08);arm.rotation.z=side*.12;g.add(arm)}
+ const gun=new THREE.Mesh(new THREE.BoxGeometry(.11,.12,.72),gunMat);gun.position.set(.28,1.15,-.38);g.add(gun);
+ scene.add(g);enemies.push(g);
+}
+makeEnemy(-13,-2,0);makeEnemy(14,-8,1);makeEnemy(24,17,2);makeEnemy(-23,24,3);
+const raycaster=new THREE.Raycaster();const center=new THREE.Vector2(0,0);
+const hud=document.getElementById('hud'),overlay=document.getElementById('overlay'),toast=document.getElementById('toast');
+function notify(s){toast.textContent=s;toast.style.opacity=1;clearTimeout(notify.t);notify.t=setTimeout(()=>toast.style.opacity=0,1700)}
+function updateHud(){document.getElementById('health').textContent=Math.max(0,Math.ceil(player.health))+'%';document.getElementById('healthfill').style.width=Math.max(0,player.health)+'%';document.getElementById('ammo').textContent=player.ammo;document.getElementById('enemyCount').textContent=String(enemies.filter(e=>e.userData.alive).length).padStart(2,'0')}
+function start(){player.started=true;overlay.style.display='none';hud.style.display='block';if(innerWidth>760)renderer.domElement.requestPointerLock?.();notify('MISSION ACTIVE — ÉLIMINEZ LES HOSTILES');}
+document.getElementById('start').addEventListener('click',start);
+document.addEventListener('pointerlockchange',()=>locked=document.pointerLockElement===renderer.domElement);
+document.addEventListener('mousemove',e=>{if(locked&&player.started){player.yaw-=e.movementX*.0022;player.pitch-=e.movementY*.0022;player.pitch=Math.max(-1.35,Math.min(1.35,player.pitch))}});
+document.addEventListener('keydown',e=>{keys[e.code]=true;if(e.code==='KeyR')reload();if(e.code==='Space')e.preventDefault();});
+document.addEventListener('keyup',e=>keys[e.code]=false);
+renderer.domElement.addEventListener('mousedown',e=>{if(e.button===0){if(!locked&&innerWidth>760&&player.started){renderer.domElement.requestPointerLock?.();return}shoot()}});
+renderer.domElement.addEventListener('contextmenu',e=>e.preventDefault());
+function reload(){if(player.ammo===30||player.reserve<=0)return;let n=Math.min(30-player.ammo,player.reserve);player.ammo+=n;player.reserve-=n;notify('RECHARGEMENT');updateHud()}
+function shoot(){if(!player.started||!player.alive||player.won)return;const now=performance.now();if(now-lastShot<130)return;lastShot=now;if(player.ammo<=0){notify('CHARGEUR VIDE — R POUR RECHARGER');return}player.ammo--;recoil=Math.min(recoil+.035,.13);updateHud();
+ raycaster.setFromCamera(center,camera);const targets=enemies.filter(e=>e.userData.alive);let parts=[];targets.forEach(e=>e.traverse(o=>{if(o.isMesh)parts.push(o)}));const hits=raycaster.intersectObjects(parts,false);
+ if(hits.length){let e=hits[0].object.parent;while(e&&!e.userData.alive)e=e.parent;if(e&&e.userData.alive){e.userData.hp-=hits[0].object.geometry.type==='SphereGeometry'?55:35;e.userData.hit=.13;document.getElementById('hitmarker').style.opacity=1;setTimeout(()=>document.getElementById('hitmarker').style.opacity=0,90);if(e.userData.hp<=0){e.userData.alive=false;scene.remove(e);notify('HOSTILE NEUTRALISÉ')}updateHud();checkMission()}}
+}
+function checkMission(){if(enemies.every(e=>!e.userData.alive)){document.getElementById('objective').textContent='Tous les hostiles neutralisés. Rejoignez la zone verte au point d’extraction.';document.getElementById('status').textContent='EXTRACTION';makeExtraction()} }
+let extraction=null;
+function makeExtraction(){if(extraction)return;extraction=new THREE.Group();const ring=new THREE.Mesh(new THREE.TorusGeometry(2.2,.09,8,36),new THREE.MeshStandardMaterial({color:0xb9f36b,emissive:0x527e27,emissiveIntensity:1.2}));ring.rotation.x=Math.PI/2;ring.position.y=.12;extraction.add(ring);const beam=new THREE.Mesh(new THREE.CylinderGeometry(.12,.55,5,16,1,true),new THREE.MeshBasicMaterial({color:0xb9f36b,transparent:true,opacity:.14,side:THREE.DoubleSide}));beam.position.y=2.5;extraction.add(beam);extraction.position.set(0,0,-31);scene.add(extraction);notify('EXTRACTION DISPONIBLE — REJOIGNEZ LE MARQUEUR');}
+function endMission(win){player.won=win;document.exitPointerLock?.();overlay.style.display='flex';overlay.querySelector('.kicker').textContent=win?'MISSION ACCOMPLIE':'MISSION ÉCHOUÉE';overlay.querySelector('.title').innerHTML=win?'ZONE<br><span>SÉCURISÉE.</span>':'FIN DE<br><span>MISSION.</span>';overlay.querySelector('.desc').textContent=win?'Tous les hostiles sont neutralisés et vous avez atteint la zone d’extraction.':'Vous avez été neutralisé. Relancez la mission pour réessayer.';overlay.querySelector('.info').innerHTML='<div><b>RÉSULTAT</b>'+(win?'Extraction réussie':'Agent neutralisé')+'</div><div><b>HOSTILES</b>'+enemies.filter(e=>!e.userData.alive).length+' / 4</div><div><b>CONTRÔLES</b>WASD · souris</div><div><b>MISSION</b>Zone industrielle</div>';document.getElementById('start').textContent='RECOMMENCER';document.getElementById('start').onclick=()=>location.reload()}
+function collides(x,z){for(const o of blockers){const b=o.geometry.boundingBox||new THREE.Box3().setFromObject(o);const bb=new THREE.Box3().setFromObject(o);if(x>bb.min.x-.45&&x<bb.max.x+.45&&z>bb.min.z-.45&&z<bb.max.z+.45&&bb.max.y>0.4&&bb.min.y<2.3)return true}return false}
+function damagePlayer(n){if(!player.alive)return;player.health-=n;updateHud();if(player.health<=0){player.alive=false;endMission(false)}}
+let time=0;
+function tick(dt){time+=dt;if(!player.started)return;
+ const forward=new THREE.Vector3(-Math.sin(player.yaw),0,-Math.cos(player.yaw));const right=new THREE.Vector3(Math.cos(player.yaw),0,-Math.sin(player.yaw));let move=new THREE.Vector3();
+ if(keys.KeyW||keys.ArrowUp)move.add(forward);if(keys.KeyS||keys.ArrowDown)move.sub(forward);if(keys.KeyD||keys.ArrowRight)move.add(right);if(keys.KeyA||keys.ArrowLeft)move.sub(right);
+ if(move.lengthSq()>0){move.normalize().multiplyScalar((keys.ShiftLeft?7.3:4.6)*dt);const nx=player.x+move.x,nz=player.z+move.z;if(!collides(nx,player.z))player.x=nx;if(!collides(player.x,nz))player.z=nz;bob+=dt*10}else bob*=.85;
+ if(keys.Space&&player.y<=1.71)player.jump=5.3;
+ if(player.jump){player.y+=player.jump*dt;player.jump-=15*dt;if(player.y<1.7){player.y=1.7;player.jump=0}}
+ camera.position.set(player.x,player.y+Math.sin(bob)*.025,player.z);camera.rotation.set(player.pitch-recoil,player.yaw,0);recoil*=.78;
+ weapon.position.y=Math.sin(bob)*.008;weapon.position.x=Math.cos(bob*.5)*.007;
+ // Enemies turn toward the player and fire when exposed; simple line-of-sight check
+ enemies.forEach(e=>{if(!e.userData.alive)return;let dx=player.x-e.position.x,dz=player.z-e.position.z,dist=Math.hypot(dx,dz);e.rotation.y=Math.atan2(-dx,-dz);e.userData.shoot-=dt;
+ if(dist<28&&e.userData.shoot<=0){e.userData.shoot=1.6+Math.random()*1.3;let blocked=false;const origin=e.position.clone();origin.y=1.3;const target=new THREE.Vector3(player.x,player.y,player.z);const ray=new THREE.Raycaster(origin,target.clone().sub(origin).normalize(),0,dist);for(const o of blockers){if(ray.intersectObject(o,false).length){blocked=true;break}}if(!blocked&&Math.random()>.25){damagePlayer(4+Math.random()*7);notify('VOUS ÊTES SOUS LE FEU')}}
+ if(e.userData.hit>0){e.userData.hit-=dt;e.children.forEach(c=>{if(c.material&&c.material.color)c.material.color.setHex(0xffb2a6)})}
+ });
+ if(extraction){extraction.rotation.y=time*.35;if(Math.hypot(player.x-extraction.position.x,player.z-extraction.position.z)<2.7&&enemies.every(e=>!e.userData.alive))endMission(true)}
+ // radar enemies relative to player
+ const radar=document.getElementById('radar');radar.querySelectorAll('.dot').forEach(d=>d.remove());enemies.filter(e=>e.userData.alive).forEach(e=>{let dx=e.position.x-player.x,dz=e.position.z-player.z;let ang=Math.atan2(dx,-dz)-player.yaw;let dist=Math.min(42,Math.hypot(dx,dz));let dot=document.createElement('i');dot.className='dot';dot.style.left=(50+Math.sin(ang)*dist/42*42)+'%';dot.style.top=(50-Math.cos(ang)*dist/42*42)+'%';radar.appendChild(dot)});
+}
+let prev=performance.now();function animate(now){requestAnimationFrame(animate);let dt=Math.min((now-prev)/1000,.04);prev=now;tick(dt);renderer.render(scene,camera)}requestAnimationFrame(animate);
+function resize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,1.65))}addEventListener('resize',resize);
+// Touch controls: left pad moves, right side looks; fire/reload/jump buttons
+const lookzone=document.getElementById('lookzone');lookzone.addEventListener('touchstart',e=>{let t=e.changedTouches[0];mobileLook={x:t.clientX,y:t.clientY,id:t.identifier};},{passive:true});
+lookzone.addEventListener('touchmove',e=>{if(!mobileLook)return;for(const t of e.changedTouches)if(t.identifier===mobileLook.id){player.yaw-=(t.clientX-mobileLook.x)*.006;player.pitch-=(t.clientY-mobileLook.y)*.005;player.pitch=Math.max(-1.2,Math.min(1.2,player.pitch));mobileLook.x=t.clientX;mobileLook.y=t.clientY}},{passive:true});
+lookzone.addEventListener('touchend',()=>mobileLook=null,{passive:true});
+const stick=document.getElementById('stick');stick.addEventListener('touchstart',()=>{keys.KeyW=true},{passive:true});stick.addEventListener('touchend',()=>{keys.KeyW=false},{passive:true});
+document.getElementById('fire').addEventListener('touchstart',e=>{e.preventDefault();shoot()});document.getElementById('reload').addEventListener('touchstart',e=>{e.preventDefault();reload()});document.getElementById('jump').addEventListener('touchstart',e=>{e.preventDefault();player.jump=5.3});
+</script>
+</body></html>
